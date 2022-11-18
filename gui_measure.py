@@ -88,6 +88,8 @@ class RectifyWorker(QObject):
         sbs_img = cv2.imread(str(self.img_path)) 
         # rectify
         self.leftImg, self.rightImg = self.rectifier.rectify_image(sbs_img=sbs_img)
+        # cv2.imwrite("left.jpg", self.leftImg)
+        # cv2.imwrite("right.jpg", self.rightImg)
         # emit on success
         self.rectify_finished.emit(self.leftImg, self.rightImg)
 
