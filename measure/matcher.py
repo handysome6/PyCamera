@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 from enum import Enum
 from pathlib import Path
-from utils.utils import imshow, snap_subpix_corner
+from utils.utils import imshow
 
 
 class MATCHER_TYPE(Enum):
@@ -148,65 +148,3 @@ class AutoMatcher():
         # print("Got coorespond region for ", point)
         return keypoints
 
-
-if __name__ == '__main__':
-    import cv2
-    import numpy as np
-    from pathlib import Path
-    from utils.utils import imshow, snap_subpix_corner
-    from measure.matcher import AutoMatcher
-
-    img_folder = Path('datasets') / '0617_IMX477_5000' / 'test'
-    left_path  = img_folder / 'rectify_02_left.jpg'
-    right_path = img_folder / 'rectify_02_right.jpg'
-    left = cv2.cvtColor(cv2.imread(str(left_path)), cv2.COLOR_BGR2GRAY)
-    right = cv2.cvtColor(cv2.imread(str(right_path)), cv2.COLOR_BGR2GRAY)
-    # left = cv2.imread(str(left_path))
-    # right = cv2.imread(str(right_path))
-
-
-
-
-
-    type1 = np.array([
-    # no change in bg
-        [2874.6624, 1297.6266], # paper corner
-        [2260.2034, 1445.7456], # chessboard 6col, 2row corner
-        [2140.5256, 1603.4136], # chessbaord 3col, 6row corner
-        [2241.0977, 2342.463 ], # x shape up corner
-        [ 497.4322, 1466.2269], # water dispenser top right corner
-
-    # change in bg
-        [872.34766, 1929.6948], # table botm left corner
-        [ 3639.962, 1776.7246], # table top right corner
-
-    # edge
-        [ 3033.456, 2353.8894], # table leg right edge
-        [2428.5632, 2452.3262], # x shape right corner
-        [ 3631.404, 1914.6367], # table botm right corner
-    ])
-    type2 = np.array([
-        [ 497.4322, 1466.2269], # water dispenser top right corner
-    ])
-
-
-
-    regions = []
-    kps = []
-    # auto match point
-    matcher = AutoMatcher(left, right)
-    for coord in type1:
-        region, top_kps = matcher.match(coord, show_result=True)
-        regions += region
-        kps.append(top_kps)
-    regions = np.reshape(np.array(regions), -1)
-    # print(regions[0])
-    kps = np.reshape(np.array(kps), -1)
-
-    # Search region - Green
-    show_fig = cv2.drawKeypoints(right, regions, None, color = (0, 255, 0))
-    # Top keypoionts - Red
-    show_fig = cv2.drawKeypoints(show_fig, kps, None, color = (255, 0, 0), 
-        flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-    # cv2.imwrite('datasets/VGG.jpg', show_fig)
-    imshow("Matching result", show_fig)
