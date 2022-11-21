@@ -77,13 +77,13 @@ def python_compute_length(camera_model_path, left_point1, left_point2, right_poi
     return len
 
 if __name__=="__main__":
-    input_image_left = cv2.imread("left.jpg")
-    input_image_right = cv2.imread("right.jpg")
-    input_point1 = np.array([2353, 1135])
-    input_point2 = np.array([2711, 689])
+    input_image_left = cv2.imread("./resources/left.jpg")
+    input_image_right = cv2.imread("./resources/right.jpg")
+    input_point1 = np.array([1700, 1083])
+    input_point2 = np.array([2471, 1100])
     matched_point1, matched_point2 = python_match_points(input_image_left, input_image_right, input_point1, input_point2)
     print(matched_point1, matched_point2)
 
-    cam_path = "/home/dell/Documents/camera_model.json"
+    cam_path = "./resources/camera_model.json"
     len = python_compute_length(cam_path, input_point1, input_point2, matched_point1, matched_point2)
     print(len)
