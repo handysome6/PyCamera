@@ -86,4 +86,4 @@ if __name__=="__main__":
 
     cam_path = "./resources/camera_model.json"
     len = python_compute_length(cam_path, input_point1, input_point2, matched_point1, matched_point2)
-    print(len)
+    print(len,type(len))
