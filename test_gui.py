@@ -3,8 +3,8 @@ from PySide2.QtWidgets import QApplication
 import sys
 
 
-cam_path = "/home/dell/Documents/camera_model.json"
-img_path = "/home/dell/Documents/test.jpg"
+cam_path = "/home/jetson/Documents/camera_model.json"
+img_path = "/home/jetson/Documents/test.jpg"
 
 
 app = QApplication([])

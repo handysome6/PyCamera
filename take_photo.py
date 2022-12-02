@@ -15,7 +15,9 @@ from PySide2.QtCore import QSize, Qt, QThread, QObject
 import q_icons
 from gui_measure import GuiMeasure, LoadingWidget
 
-cam_path = "/home/jetson/NewCam/example/camera_model.json"
+from test_scp.test_scp import scp
+
+cam_path = "/home/jetson/PyCamera/example/camera_model.json"
 
 class TakePhotoWindow(QWidget):
     def __init__(self) -> None:
@@ -105,6 +107,7 @@ class TakePhotoWindow(QWidget):
         print("Capture Succeed!")
         self.capture_notice.show()
         self.cap_img_path = path
+        scp(path)
         self.measure_button.setDisabled(False)
 
     def _slot_folder_clicked(self):

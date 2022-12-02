@@ -45,7 +45,7 @@ class AutoMatchWorker(QObject):
         self.rightImg = rightImg
         self.point1 = point1
         self.point2 = point2
-        self.matcher = AutoMatcher(self.leftImg, self.rightImg, method=MATCHER_TYPE.SIFT)
+        self.matcher = AutoMatcher(self.leftImg, self.rightImg, method=MATCHER_TYPE.BRIEF) #BRIEF
 
     def start_match(self):
         _, top_kps = self.matcher.match(self.point1, show_result=False)
@@ -144,11 +144,13 @@ class GuiMeasure(QWidget):
         sp.setVerticalPolicy(QSizePolicy.Expanding)
         self.point1_button.setSizePolicy(sp)
         self.point1_button.clicked.connect(self._slot_point1_clicked)
+        self.point1_button.setCheckable(True)
 
         # point 2 button
         self.point2_button = QPushButton("Point 2")
         self.point2_button.setSizePolicy(sp)
         self.point2_button.clicked.connect(self._slot_point2_clicked)
+        self.point2_button.setCheckable(True)
 
         # finish button
         self.finish_button = QPushButton("Finish")
@@ -221,7 +223,7 @@ class GuiMeasure(QWidget):
             centrePos = self.rightView.viewport().mapTo(
                 self, self.rightView.viewport().rect().center()
             )
-        self.crossWidget.move(centrePos - self.crossWidget.rect().center() + QPoint(2,2))
+        self.crossWidget.move(centrePos - self.crossWidget.rect().center() + QPoint(1,1))
 
     def event(self, event) -> bool:
         if event.type() == QEvent.Resize or \

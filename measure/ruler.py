@@ -101,7 +101,7 @@ class Ruler():
     def draw_line_crop(img, point):
         """Draw a corss around the corner"""
         d = 100
-        line_thickness = 3
+        line_thickness = 1
         point = (int(point[0]), int(point[1]))
         cv2.line(img, point, (point[0], 0), (0,0,255), thickness=line_thickness)
         cv2.line(img, point, (0, point[1]), (0,0,255), thickness=line_thickness)

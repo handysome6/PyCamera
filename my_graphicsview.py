@@ -143,7 +143,7 @@ class MyGraphicsView(QGraphicsView):
                 self.scene().removeItem(item)
 
     def updatePoint(self, point : np.ndarray, current_point_flag):
-        point = self.gftt_snap(point)
+        point = self.subpix(point)
         if current_point_flag == 1:
             self.point1 = point
         else:
@@ -171,6 +171,20 @@ class MyGraphicsView(QGraphicsView):
         id = np.argmin(distances)
         print("snapped to", corners[id])
         return corners[id]
+
+    def subpix(self, point):
+        src = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
+        point = point.astype(np.float)
+        point = np.array([point], dtype=np.float32)
+
+        winSize = (3, 3)
+        zeroZone = (-1, -1)
+        criteria = (cv2.TERM_CRITERIA_EPS + cv2.TermCriteria_COUNT, 40, 0.001)
+        # REQUIRED corner to be np.ndarray of shape (num, 2), dtype=np.float32
+        print(point)
+        corner = cv2.cornerSubPix(src, point, winSize, zeroZone, criteria)
+
+        return corner[0]
 
     def gftt_snap(self, point):
         src = cv2.cvtColor(self.image, cv2.COLOR_BGR2GRAY)
