@@ -181,7 +181,6 @@ class MyGraphicsView(QGraphicsView):
         zeroZone = (-1, -1)
         criteria = (cv2.TERM_CRITERIA_EPS + cv2.TermCriteria_COUNT, 40, 0.001)
         # REQUIRED corner to be np.ndarray of shape (num, 2), dtype=np.float32
-        print(point)
         corner = cv2.cornerSubPix(src, point, winSize, zeroZone, criteria)
 
         return corner[0]
