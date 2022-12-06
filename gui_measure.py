@@ -21,6 +21,28 @@ from measure.matcher import AutoMatcher, MATCHER_TYPE
 from measure.feature_desc import FeatureDesc
 import q_icons  # hold resources
 
+class AutoMatchWorker(QObject):
+    match_finished = Signal(np.ndarray, np.ndarray)
+    def __init__(self, leftImg, rightImg, point1, point2) -> None:
+        super().__init__()
+        print("Start automatcher..." , point1 , point2)
+        self.leftImg = leftImg
+        self.rightImg = rightImg
+        self.point1 = point1
+        self.point2 = point2
+        self.matcher = AutoMatcher(self.leftImg, self.rightImg, method=MATCHER_TYPE.SIFT) #BRIEF
+
+    def start_match(self):
+        _, top_kps = self.matcher.match(self.point1, show_result=False)
+        size_list=np.array([kp.size for kp in top_kps])
+        index=np.argmax(size_list)
+        matched_point1 = top_kps[index].pt
+        _, top_kps = self.matcher.match(self.point2, show_result=False)
+        size_list=np.array([kp.size for kp in top_kps])
+        index=np.argmax(size_list)        
+        matched_point2 = top_kps[index].pt
+        self.match_finished.emit(matched_point1, matched_point2)
+
 class FeatureComputeWorker(QObject):
     compute_finished = Signal(int)
     def __init__(self, rect_img, point_list : np.ndarray, worker_id=0):
@@ -40,7 +62,7 @@ class FeatureComputeWorker(QObject):
             raise RuntimeError("Feature computaion failed")
         return self.feature_descriptor.descriptors
         
-class AutoMatchWorker(QObject):
+class AutoMatchWorker_new(QObject):
     match_finished = Signal(np.ndarray, np.ndarray)
     def __init__(self, leftImg, rightImg, point1, point2) -> None:
         super().__init__()
@@ -311,7 +333,7 @@ class GuiMeasure(QWidget):
                 )
                 self.am_thread = QThread()
                 self.am_worker.moveToThread(self.am_thread)
-                self.am_thread.started.connect(self.am_worker.start_compute)
+                self.am_thread.started.connect(self.am_worker.start_match)
                 self.am_worker.match_finished.connect(self.am_thread.quit)
                 self.am_worker.match_finished.connect(self._slot_matched_finished)
                 self.am_thread.start()

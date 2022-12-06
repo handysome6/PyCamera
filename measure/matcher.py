@@ -71,16 +71,23 @@ class AutoMatcher():
         if len(point.shape) == 1:
             point = np.expand_dims(point, axis=0)
             assert len(point.shape) == 2
-
         # compute reference LEFT
-        ref_keypoints = cv2.KeyPoint.convert(np.array(point, dtype=np.float32))
-        ref_keypoints, ref_descriptors = self.point_discriptor.compute(self.left_img, ref_keypoints)
-        # convert type to int
-        point = np.array(point, dtype=np.int32)
+        print("start1")
+        testp = [(point[0][0]-int(point[0][0]) + 8,point[0][1]-int(point[0][1]) + 8)]
+        testp = cv2.KeyPoint.convert(np.array(testp, dtype=np.float32))
+        print("start2")
+        # ref_keypoints = cv2.KeyPoint.convert(np.array(point, dtype=np.float32))
+        corpimgL = self.left_img[int(point[0][1])-8:int(point[0][1])+8,int(point[0][0])-8:int(point[0][0])+8]
+        print("start3")
+        ref_keypoints, ref_descriptors = self.point_discriptor.compute(corpimgL, testp)
+        # point = np.array(point, dtype=np.int32)
         # compute candidates RIGHT
-        candidates = self._get_correspond_candidates(point[0])
-        corr_keypoints, corr_descriptors = self.point_discriptor.compute(self.right_img, candidates)
-
+        # candidates = self._get_correspond_candidates(point[0])
+        corpimgR = self.right_img[int(point[0][1]) - 8:int(point[0][1]) + 8, int(point[0][0]) - 608:int(point[0][0]) - 42]
+        testr = (608,8)
+        candidates = self._get_correspond_candidates(testr)
+        print("start4")
+        corr_keypoints, corr_descriptors = self.point_discriptor.compute(corpimgR, candidates)
         # select point feature
         feature = ref_descriptors[0]
         # compare with corr features
@@ -91,7 +98,7 @@ class AutoMatcher():
 
         # find nearest feature
         distances = np.array(distances)
-        ind = np.argpartition(distances, 10)[:10]
+        ind = np.argpartition(distances, 1)[:1]
         top_keypoints = []
         for i in ind:
             dist = distances[i]
@@ -101,7 +108,14 @@ class AutoMatcher():
             # print(kp.size)
             top_keypoints.append(kp)
         top_keypoints = np.array(top_keypoints)
-
+        # map keypoint to original image
+        print("start5")
+        matchpoint = cv2.KeyPoint.convert(top_keypoints)
+        print(matchpoint)
+        for i in range(len(matchpoint)):
+            matchpoint[i][1] = matchpoint[i][1] + point[0][1] - 8
+            matchpoint[i][0] = matchpoint[i][0] + point[0][0] - 608
+        top_keypoints = cv2.KeyPoint.convert(matchpoint)
         if show_result:
             # Search region - Green
             show_fig = cv2.drawKeypoints(self.right_img, corr_keypoints, None, color = (0, 255, 0))
