@@ -18,7 +18,97 @@ from measure.ruler import Ruler
 from my_graphicsview import MyGraphicsView
 from resize_graphicsview import ResizeGraphicsView
 from measure.matcher import AutoMatcher, MATCHER_TYPE
+from measure.feature_desc import FeatureDesc
 import q_icons  # hold resources
+
+class AutoMatchWorker(QObject):
+    match_finished = Signal(np.ndarray, np.ndarray)
+    def __init__(self, leftImg, rightImg, point1, point2) -> None:
+        super().__init__()
+        print("Start automatcher..." , point1 , point2)
+        self.leftImg = leftImg
+        self.rightImg = rightImg
+        self.point1 = point1
+        self.point2 = point2
+        self.matcher = AutoMatcher(self.leftImg, self.rightImg, method=MATCHER_TYPE.SIFT) #BRIEF
+
+    def start_match(self):
+        _, top_kps = self.matcher.match(self.point1, show_result=False)
+        size_list=np.array([kp.size for kp in top_kps])
+        index=np.argmax(size_list)
+        matched_point1 = top_kps[index].pt
+        _, top_kps = self.matcher.match(self.point2, show_result=False)
+        size_list=np.array([kp.size for kp in top_kps])
+        index=np.argmax(size_list)        
+        matched_point2 = top_kps[index].pt
+        self.match_finished.emit(matched_point1, matched_point2)
+
+class FeatureComputeWorker(QObject):
+    compute_finished = Signal(int)
+    def __init__(self, rect_img, point_list : np.ndarray, worker_id=0):
+        super().__init__()
+        self.rect_img = rect_img
+        self.point_list = point_list
+        self.worker_id = worker_id
+
+    def start_compute(self):
+        self.feature_descriptor = FeatureDesc(method=MATCHER_TYPE.SIFT)
+        self.feature_descriptor.compute(self.rect_img, self.point_list)
+        self.compute_finished.emit(self.worker_id)
+
+    def get_feature(self):
+        if self.feature_descriptor.descriptors.shape[0] == 0:
+            # if empty array
+            raise RuntimeError("Feature computaion failed")
+        return self.feature_descriptor.descriptors
+        
+class AutoMatchWorker_new(QObject):
+    match_finished = Signal(np.ndarray, np.ndarray)
+    def __init__(self, leftImg, rightImg, point1, point2) -> None:
+        super().__init__()
+        print("Start automatcher..." , point1 , point2)
+        self.leftImg = leftImg
+        self.rightImg = rightImg
+        self.point1 = point1
+        self.point2 = point2
+        self.finished_worker_num = 0
+
+    def start_compute(self):
+        # start left img's feature compute worker
+        left_points = np.array([self.point1, self.point2], dtype=np.float)
+        self.fc_worker1 = FeatureComputeWorker(self.leftImg, left_points, worker_id=0)
+        self.fc_thread1 = QThread()
+        self.fc_worker1.moveToThread(self.fc_thread1)
+        self.fc_thread1.started.connect(self.fc_worker1.start_compute)
+        self.fc_worker1.compute_finished.connect(self.fc_thread1.quit)
+        self.fc_worker1.compute_finished.connect(self._slot_compute_finished)
+        self.fc_thread1.start()
+
+        # start right img's feature compute worker
+        right_point_list1 = FeatureDesc.get_candidate_pts(self.point1)
+        right_point_list2 = FeatureDesc.get_candidate_pts(self.point2)
+        right_points = np.concatenate([right_point_list1, right_point_list2])
+        self.fc_worker2 = FeatureComputeWorker(self.rightImg, right_points, worker_id=1)
+        self.fc_thread2 = QThread()
+        self.fc_worker2.moveToThread(self.fc_thread2)
+        self.fc_thread2.started.connect(self.fc_worker2.start_compute)
+        self.fc_worker2.compute_finished.connect(self.fc_thread2.quit)
+        self.fc_worker2.compute_finished.connect(self._slot_compute_finished)
+        self.fc_thread2.start()
+
+    def _slot_compute_finished(self, worker_id):
+        self.finished_worker_num += 1
+        print(f"Thread {worker_id} compute finished!")
+
+        if self.finished_worker_num == 2:
+            # match points according to feature
+            left_features = self.fc_worker1.get_feature()
+            matched_point1 = self.fc_worker2.feature_descriptor.find_point1_match(left_features[0])
+
+            matched_point2 = self.fc_worker2.feature_descriptor.find_point2_match(left_features[1])
+
+            self.match_finished.emit(matched_point1, matched_point2)
+
 
 class CrossWidget(QWidget):
     def __init__(self, parent) -> None:
@@ -35,28 +125,6 @@ class CrossWidget(QWidget):
         painter.setPen(QPen(Qt.red, r*2, Qt.SolidLine, Qt.RoundCap))
         painter.drawLine(0, 100-r, 200, 100-r)
         painter.drawLine(100-r, 0, 100-r, 200)
-
-class AutoMatchWorker(QObject):
-    match_finished = Signal(np.ndarray, np.ndarray)
-    def __init__(self, leftImg, rightImg, point1, point2) -> None:
-        super().__init__()
-        print("Start automatcher..." , point1 , point2)
-        self.leftImg = leftImg
-        self.rightImg = rightImg
-        self.point1 = point1
-        self.point2 = point2
-        self.matcher = AutoMatcher(self.leftImg, self.rightImg, method=MATCHER_TYPE.SIFT)
-
-    def start_match(self):
-        _, top_kps = self.matcher.match(self.point1, show_result=False)
-        size_list=np.array([kp.size for kp in top_kps])
-        index=np.argmax(size_list)
-        matched_point1 = top_kps[index].pt
-        _, top_kps = self.matcher.match(self.point2, show_result=False)
-        size_list=np.array([kp.size for kp in top_kps])
-        index=np.argmax(size_list)        
-        matched_point2 = top_kps[index].pt
-        self.match_finished.emit(matched_point1, matched_point2)
 
 class LoadingWidget(QLabel):
     def __init__(self) -> None:
@@ -144,11 +212,13 @@ class GuiMeasure(QWidget):
         sp.setVerticalPolicy(QSizePolicy.Expanding)
         self.point1_button.setSizePolicy(sp)
         self.point1_button.clicked.connect(self._slot_point1_clicked)
+        self.point1_button.setCheckable(True)
 
         # point 2 button
         self.point2_button = QPushButton("Point 2")
         self.point2_button.setSizePolicy(sp)
         self.point2_button.clicked.connect(self._slot_point2_clicked)
+        self.point2_button.setCheckable(True)
 
         # finish button
         self.finish_button = QPushButton("Finish")
@@ -221,7 +291,7 @@ class GuiMeasure(QWidget):
             centrePos = self.rightView.viewport().mapTo(
                 self, self.rightView.viewport().rect().center()
             )
-        self.crossWidget.move(centrePos - self.crossWidget.rect().center() + QPoint(2,2))
+        self.crossWidget.move(centrePos - self.crossWidget.rect().center() + QPoint(1,1))
 
     def event(self, event) -> bool:
         if event.type() == QEvent.Resize or \

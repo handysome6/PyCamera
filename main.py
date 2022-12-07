@@ -1,3 +1,5 @@
+# Must import cv2 before qt to avoid potential errors 
+import cv2
 import sys
 from PySide2 import QtWidgets
 from gui_measure import GuiMeasure
