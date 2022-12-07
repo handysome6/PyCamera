@@ -4,7 +4,7 @@ import numpy as np
 from enum import Enum
 from pathlib import Path
 from utils.utils import imshow
-
+import time
 
 class MATCHER_TYPE(Enum):
     """
@@ -63,7 +63,7 @@ class AutoMatcher():
     def match(self, point, show_result=False):
         """
         Find matching point in another image
-        point: single reference point coord in left image. 
+        point: single reference point coord in left image.
                accepted shape: (2,) (1,2)
         """
         print("Finding matching point...")
@@ -72,27 +72,32 @@ class AutoMatcher():
             point = np.expand_dims(point, axis=0)
             assert len(point.shape) == 2
         # compute reference LEFT
-        print("start1")
         testp = [(point[0][0]-int(point[0][0]) + 8,point[0][1]-int(point[0][1]) + 8)]
         testp = cv2.KeyPoint.convert(np.array(testp, dtype=np.float32))
-        print("start2")
         # ref_keypoints = cv2.KeyPoint.convert(np.array(point, dtype=np.float32))
         corpimgL = self.left_img[int(point[0][1])-8:int(point[0][1])+8,int(point[0][0])-8:int(point[0][0])+8]
-        print("start3")
         ref_keypoints, ref_descriptors = self.point_discriptor.compute(corpimgL, testp)
         # point = np.array(point, dtype=np.int32)
         # compute candidates RIGHT
-        # candidates = self._get_correspond_candidates(point[0])
-        corpimgR = self.right_img[int(point[0][1]) - 8:int(point[0][1]) + 8, int(point[0][0]) - 608:int(point[0][0]) - 42]
+        d = 608
+        print(self.right_img.shape)
+        if point[0][0] < d:
+            padding = np.zeros([self.right_img.shape[0],566,3],dtype=np.float32)
+            tempright = np.concatenate([padding, self.right_img], axis=1)
+            corpimgR = np.uint8(tempright[int(point[0][1]) - 8:int(point[0][1]) + 8,
+                       int(point[0][0]) - 608 + d:int(point[0][0]) - 42 + d, :])
+        else:
+            corpimgR = self.right_img[int(point[0][1]) - 8:int(point[0][1]) + 8,
+                       int(point[0][0]) - 608:int(point[0][0]) - 42,:]
+        print(corpimgR.shape)
         testr = (608,8)
         candidates = self._get_correspond_candidates(testr)
-        print("start4")
         corr_keypoints, corr_descriptors = self.point_discriptor.compute(corpimgR, candidates)
+        print(corr_descriptors)
         # select point feature
         feature = ref_descriptors[0]
         # compare with corr features
         distances = []
-        # print(len(feature))
         for corr_f in corr_descriptors:
             distances.append(cv2.norm(feature, corr_f, cv2.NORM_L2))
 
@@ -102,14 +107,11 @@ class AutoMatcher():
         top_keypoints = []
         for i in ind:
             dist = distances[i]
-            # print(dist, corr_keypoints[i].pt)
             kp = corr_keypoints[i]
             kp.size = self.kp_size(dist)
-            # print(kp.size)
             top_keypoints.append(kp)
         top_keypoints = np.array(top_keypoints)
         # map keypoint to original image
-        print("start5")
         matchpoint = cv2.KeyPoint.convert(top_keypoints)
         print(matchpoint)
         for i in range(len(matchpoint)):
@@ -120,7 +122,7 @@ class AutoMatcher():
             # Search region - Green
             show_fig = cv2.drawKeypoints(self.right_img, corr_keypoints, None, color = (0, 255, 0))
             # Top keypoionts - Red
-            show_fig = cv2.drawKeypoints(show_fig, top_keypoints, None, color = (0, 0, 255), 
+            show_fig = cv2.drawKeypoints(show_fig, top_keypoints, None, color = (0, 0, 255),
                 flags=cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
             imshow("Matching result", show_fig)
         return corr_keypoints, top_keypoints
