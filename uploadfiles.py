@@ -16,18 +16,19 @@ def upload(imageName,imgL,imgR,model):
     -------
 
     '''
-    url = "http://localhost:8082/model/uploadimagesdata" #http://192.168.10.194:8082
+    url = "http://192.168.0.100:8082/model/uploadimagesdata" #http://192.168.10.194:8082
     form_data = {}
     today = datetime.date.today()
     form_data["imagename"] = imageName
-    form_data["left"] = "/home/hyx/Desktop/codeshere/PyCamera/resources/"+imgL
-    form_data["right"] = "/home/hyx/Desktop/codeshere/PyCamera/resources/"+imgR
-    form_data["model"] = "/home/hyx/Desktop/codeshere/PyCamera/resources/"+model
+    form_data["left"] = f"/home/hyx/Desktop/codeshere/PyCamera/resources/{imageName}/"+imgL
+    form_data["right"] = f"/home/hyx/Desktop/codeshere/PyCamera/resources/{imageName}/"+imgR
+    form_data["model"] = f"/home/hyx/Desktop/codeshere/PyCamera/resources/{imageName}/"+model
     form_data["date"] = today
-    form_data["preview"] = "/home/hyx/Desktop/codeshere/PyCamera/resources/"+imgL
+    form_data["preview"] = f"/home/hyx/Desktop/codeshere/PyCamera/resources/{imageName}/"+imgL
 
     response=requests.post(url,data=form_data)
     print(response.text)
+    return response.ok
 
 
 if __name__ == "__main__":

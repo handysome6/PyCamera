@@ -360,7 +360,7 @@ class GuiMeasure(QWidget):
             self.result_view = ResizeGraphicsView()
             self.result_view.load_scene_image(result)
             self.result_view.showMaximized()
-            QTimer.singleShot(50, self.result_view.previewMode)
+            QTimer.singleShot(100, self.result_view.previewMode)
             self.close()
 
     def _slot_matched_finished(self, matched_point1, matched_point2):

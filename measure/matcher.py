@@ -80,7 +80,6 @@ class AutoMatcher():
         # point = np.array(point, dtype=np.int32)
         # compute candidates RIGHT
         d = 608
-        print(self.right_img.shape)
         if point[0][0] < d:
             padding = np.zeros([self.right_img.shape[0],566,3],dtype=np.float32)
             tempright = np.concatenate([padding, self.right_img], axis=1)
@@ -89,11 +88,9 @@ class AutoMatcher():
         else:
             corpimgR = self.right_img[int(point[0][1]) - 8:int(point[0][1]) + 8,
                        int(point[0][0]) - 608:int(point[0][0]) - 42,:]
-        print(corpimgR.shape)
         testr = (608,8)
         candidates = self._get_correspond_candidates(testr)
         corr_keypoints, corr_descriptors = self.point_discriptor.compute(corpimgR, candidates)
-        print(corr_descriptors)
         # select point feature
         feature = ref_descriptors[0]
         # compare with corr features
